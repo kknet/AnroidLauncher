@@ -441,7 +441,7 @@ public final class Launcher extends Activity
            mThemeReflected= preference.getBoolean(Launcher.FIRSTTIME_THEME_REFLECTED,false);  
   
   
-// if (!isBooted) {  
+        // if (!isBooted) {  
   
         // preference.edit().putBoolean(Launcher.PREF_BOOTED_ALREADY,true).apply();  
   
@@ -469,11 +469,11 @@ public final class Launcher extends Activity
   
            // mDoSetDockIcon = true;  
   
-           if(FjFeatMac.FJFEAT_PRODUCT == FjFeatMac.FJFEAT_PRODUCT_FJDEV011 ||  
+           if(FeatMac.FEAT_PRODUCT == FeatMac.FEAT_PRODUCT_DEV011 ||  
   
-           FjFeatMac.FJFEAT_PRODUCT== FjFeatMac.FJFEAT_PRODUCT_FJDEV008 ||  
+           FeatMac.FEAT_PRODUCT== FeatMac.FEAT_PRODUCT_DEV008 ||  
   
-           FjFeatMac.FJFEAT_PRODUCT== FjFeatMac.FJFEAT_PRODUCT_FJDEV013) {  
+           FeatMac.FEAT_PRODUCT== FeatMac.FEAT_PRODUCT_DEV013) {  
   
            SharedPreferences pref =getSharedPreferences(LauncherApplication.getSharedPreferencesKey(),  
   
@@ -483,58 +483,43 @@ public final class Launcher extends Activity
   
            editor.putBoolean(DOCKICON_CUSTOM,true);  
   
-            editor.commit();  
+           editor.commit();  
   
     }  
   
-    ContentProvider provider =getContentResolver().acquireContentProviderClient(  
+      ContentProvider provider =getContentResolver().acquireContentProviderClient(  
   
-    LauncherSettings.HomeAppHistoryColumns.CONTENT_URI).getLocalContentProvider();  
+      LauncherSettings.HomeAppHistoryColumns.CONTENT_URI).getLocalContentProvider();  
   
-    LauncherProvider lp =(LauncherProvider) provider;  
+      LauncherProvider lp =(LauncherProvider) provider;  
   
   
-    Log.d(TAG, "Launcher onCreateresetHistoryRecord call");  
+      Log.d(TAG, "Launcher onCreateresetHistoryRecord call");  
   
-    lp.resetHistoryRecord();  
+      lp.resetHistoryRecord();  
   
       // ResourceLoadHelper helper =LauncherModel.getResourceLoadHelper();  
   
       // helper.setThemePackage(helper.getThemePackageName());  
   
-    }  
+      }  
   
-    //启动appwidgetHost的监听，监听widget事件  
+      checkForLocaleChange()    
+      setupViews();   
+      try{  
   
-    //检查更新本地保存的配置文件  
+           mIsHandwriting= preference.getBoolean(PREF_HAND_WRITING_MODE,false);  
   
-    checkForLocaleChange()  
+       } catch(ClassCastExceptione) {  
   
-    //配置UI控件  
+           //When making an error, a hand-written setting is turned on.  
   
-    setupViews();  
+           mIsHandwriting= false;  
   
-    //标题文字检索  
+           Log.e(TAG,e.toString());  
   
-    try{  
-  
-       mIsHandwriting= preference.getBoolean(PREF_HAND_WRITING_MODE,false);  
-  
-    } catch(ClassCastExceptione) {  
-  
-       //When making an error, a hand-written setting is turned on.  
-  
-       mIsHandwriting= false;  
-  
-       Log.e(TAG,e.toString());  
-  
-    }  
-  
-    //隐藏buttonContainer  
-  
-    //buttonContainerInvisible()  
-  
-    //注册ContentProvider监听对象  
+       }  
+	}
   
     privatevoid registerContentObservers() {  
   
@@ -549,7 +534,7 @@ public final class Launcher extends Activity
         true,mCallLogObserver);  
   
   
-    if( FjFeatMac.FJFEAT_CARRIER== FjFeatMac.FJFEAT_CARRIER_KDDI ) {  
+    if( FeatMac.FEAT_CARRIER== FeatMac.FEAT_CARRIER_KDDI ) {  
   
         resolver.registerContentObserver(  
   
