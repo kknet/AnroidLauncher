@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,121 +14,94 @@
  * limitations under the License.
  */
 
-package com.android.launcher3;
+package com.android.launcher2;
 
-import android.app.backup.BackupAgentHelper;
-import android.app.backup.BackupDataInput;
-import android.app.backup.BackupManager;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.os.ParcelFileDescriptor;
-import android.util.Log;
+import android.app.Application;
+import android.content.ContentResolver;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.ContentObserver;
+import android.os.Handler;
+import dalvik.system.VMRuntime;
 
-import com.android.launcher3.model.GridSizeMigrationTask;
-
-import java.io.IOException;
-
-public class LauncherBackupAgentHelper extends BackupAgentHelper {
-
-    private static final String TAG = "LauncherBAHelper";
-
-    private static final String KEY_LAST_NOTIFIED_TIME = "backup_manager_last_notified";
-
-    private static boolean sIsScreenLarge;
-    private static float sScreenDensity;
-    private static final String LAUNCHER_DATA_PREFIX = "L";
-
-    static final boolean VERBOSE = false;
-    static final boolean DEBUG = false;
-
-    /**
-     * Notify the backup manager that out database is dirty.
-     *
-     * <P>This does not force an immediate backup.
-     *
-     * @param context application context
-     */
-    public static void dataChanged(Context context) {
-        dataChanged(context, 0);
-    }
-
-    /**
-     * Notify the backup manager that out database is dirty.
-     *
-     * <P>This does not force an immediate backup.
-     *
-     * @param context application context
-     * @param throttleMs duration in ms for which two consecutive calls to backup manager should
-     *                   not be made.
-     */
-    public static void dataChanged(Context context, long throttleMs) {
-        SharedPreferences prefs = Utilities.getPrefs(context);
-        long now = System.currentTimeMillis();
-        long lastTime = prefs.getLong(KEY_LAST_NOTIFIED_TIME, 0);
-
-        // User can manually change the system time, which could lead to now < lastTime.
-        // Re-backup in that case, as the backup will have a wrong lastModifiedTime.
-        if (now < lastTime || now >= (lastTime + throttleMs)) {
-            BackupManager.dataChanged(context.getPackageName());
-            prefs.edit().putLong(KEY_LAST_NOTIFIED_TIME, now).apply();
-        }
-    }
-
-    private LauncherBackupHelper mHelper;
+public class LauncherApplication extends Application {
+    public LauncherModel mModel;
+    public IconCache mIconCache;
 
     @Override
     public void onCreate() {
+        VMRuntime.getRuntime().setMinimumHeapSize(4 * 1024 * 1024);
+
         super.onCreate();
-        mHelper = new LauncherBackupHelper(this);
-        addHelper(LAUNCHER_DATA_PREFIX, mHelper);
+
+        mIconCache = new IconCache(this);
+        mModel = new LauncherModel(this, mIconCache);
+
+        // Register intent receivers
+        IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        filter.addDataScheme("package");
+        registerReceiver(mModel, filter);
+        filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE);
+        filter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
+        registerReceiver(mModel, filter);
+		Utilities.addAction(Utilities.PRIVACY_MODE_CHANGED);
+		registerReceiver(mModel,filter);
+		filter = new IntentFilter();
+		filter.addAction(Utilities.PRIVACY_KIND_CHANGED);
+		registerReceiver(mModel,filter);
+		filter = new IntentFilter();
+		filter.addAction(Utilities.MASK_KIND_CHANGED);
+		registerReceiver(mModel,filter);
+		filter = new IntentFilter();
+		filter.addAction(Utilities.PRIVACY_MASK_KIND_CHANGED_START);
+		registerReceiver(mModel,filter);
+		filter = new IntentFilter();
+	    filter.addAction(Intent.ACTION_SCREEN_OFF);
+		registerReceiver(mModel,filter);
+
+
+        // Register for changes to the favorites
+        ContentResolver resolver = getContentResolver();
+        resolver.registerContentObserver(LauncherSettings.Favorites.CONTENT_URI, true,
+                mFavoritesObserver);
     }
 
+    /**
+     * There's no guarantee that this function is ever called.
+     */
     @Override
-    public void onRestore(BackupDataInput data, int appVersionCode, ParcelFileDescriptor newState)
-            throws IOException {
-        if (!Utilities.ATLEAST_LOLLIPOP) {
-            // No restore for old devices.
-            Log.i(TAG, "You shall not pass!!!");
-            Log.d(TAG, "Restore is only supported on devices running Lollipop and above.");
-            return;
+    public void onTerminate() {
+        super.onTerminate();
+
+        unregisterReceiver(mModel);
+
+        ContentResolver resolver = getContentResolver();
+        resolver.unregisterContentObserver(mFavoritesObserver);
+    }
+
+    /**
+     * Receives notifications whenever the user favorites have changed.
+     */
+    private final ContentObserver mFavoritesObserver = new ContentObserver(new Handler()) {
+        @Override
+        public void onChange(boolean selfChange) {
+            mModel.startLoader(LauncherApplication.this, false);
         }
+    };
 
-        // Clear dB before restore
-        LauncherAppState.getLauncherProvider().createEmptyDB();
+    LauncherModel setLauncher(Launcher launcher) {
+        mModel.initialize(launcher);
+        return mModel;
+    }
 
-        boolean hasData;
-        try {
-            super.onRestore(data, appVersionCode, newState);
-            // If no favorite was migrated, clear the data and start fresh.
-            final Cursor c = getContentResolver().query(
-                    LauncherSettings.Favorites.CONTENT_URI, null, null, null, null);
-            hasData = c.moveToNext();
-            c.close();
-        } catch (Exception e) {
-            // If the restore fails, we should do a fresh start.
-            Log.e(TAG, "Restore failed", e);
-            hasData = false;
-        }
+    IconCache getIconCache() {
+        return mIconCache;
+    }
 
-        if (hasData && mHelper.restoreSuccessful) {
-            LauncherAppState.getLauncherProvider().clearFlagEmptyDbCreated();
-            LauncherClings.markFirstRunClingDismissed(this);
-
-            // Rank was added in v4.
-            if (mHelper.restoredBackupVersion <= 3) {
-                LauncherAppState.getLauncherProvider().updateFolderItemsRank();
-            }
-
-            if (GridSizeMigrationTask.ENABLED && mHelper.shouldAttemptWorkspaceMigration()) {
-                GridSizeMigrationTask.markForMigration(getApplicationContext(),
-                        mHelper.widgetSizes, mHelper.migrationCompatibleProfileData);
-            }
-
-            LauncherAppState.getLauncherProvider().convertShortcutsToLauncherActivities();
-        } else {
-            if (VERBOSE) Log.v(TAG, "Nothing was restored, clearing DB");
-            LauncherAppState.getLauncherProvider().createEmptyDB();
-        }
+    LauncherModel getModel() {
+        return mModel;
     }
 }
