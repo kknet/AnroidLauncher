@@ -86,6 +86,13 @@ public final class Utilities {
 
     private static final Rect sOldBounds = new Rect();
     private static final Canvas sCanvas = new Canvas();
+    public static final String PRIVACY_MODE_CHANGED = "android.intent.action.PRIVACY_STATE_CHANGED";
+    
+    public static final String PRIVACY_KIND_CHANGED = "ccom.android.launcher3.intent.action.PRIVACY_KIND_CHANGED";
+  
+    public static final String MASK_KIND_CHANGED = "com.android.launcher3.intent.action.MASK_KIND_CHANGED";
+   
+    public static final String PRIVACY_MASK_KIND_CHANGE_START = "com.android.launcher3.action.PRIVACY_MASK_KIND_CHANGE_START";
 
     private static final Pattern sTrimPattern =
             Pattern.compile("^[\\s|\\p{javaSpaceChar}]*(.*)[\\s|\\p{javaSpaceChar}]*$");
