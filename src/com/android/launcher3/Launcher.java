@@ -308,6 +308,7 @@ public final class Launcher extends Activity
     private Rect mRectForFolderAnimation = new Rect();
 
     private BubbleTextView mWaitingForResume;
+    protected boolean mIsHandwriting = false;
 
     private HideFromAccessibilityHelper mHideFromAccessibilityHelper
         = new HideFromAccessibilityHelper();
