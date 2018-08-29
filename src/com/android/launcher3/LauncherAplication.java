@@ -47,20 +47,20 @@ public class LauncherApplication extends Application {
         filter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE);
         filter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
         registerReceiver(mModel, filter);
-	Utilities.addAction(Utilities.PRIVACY_MODE_CHANGED);
-	registerReceiver(mModel,filter);
-	filter = new IntentFilter();
-	filter.addAction(Utilities.PRIVACY_KIND_CHANGED);
-	registerReceiver(mModel,filter);
-	filter = new IntentFilter();
-	filter.addAction(Utilities.MASK_KIND_CHANGED);
-	registerReceiver(mModel,filter);
-	filter = new IntentFilter();
-	filter.addAction(Utilities.PRIVACY_MASK_KIND_CHANGED_START);
-	registerReceiver(mModel,filter);
-	filter = new IntentFilter();
-	filter.addAction(Intent.ACTION_SCREEN_OFF);
-	registerReceiver(mModel,filter);
+	 Utilities.addAction(Utilities.PRIVACY_MODE_CHANGED);
+	 registerReceiver(mModel,filter);
+	 filter = new IntentFilter();
+	 filter.addAction(Utilities.PRIVACY_KIND_CHANGED);
+	 registerReceiver(mModel,filter);
+	 filter = new IntentFilter();
+	 filter.addAction(Utilities.MASK_KIND_CHANGED);
+	 registerReceiver(mModel,filter);
+	 filter = new IntentFilter();
+	 filter.addAction(Utilities.PRIVACY_MASK_KIND_CHANGED_START);
+	 registerReceiver(mModel,filter);
+	 filter = new IntentFilter();
+	 filter.addAction(Intent.ACTION_SCREEN_OFF);
+	 registerReceiver(mModel,filter);
 
 
         // Register for changes to the favorites
